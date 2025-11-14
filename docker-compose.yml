@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: proxyfhir
+      POSTGRES_PASSWORD: proxyfhir
+      POSTGRES_DB: proxyfhir
+    ports:
+      - "5433:5432" # map container 5432 to host 5433 as requested
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+  synthea:
+    image: eclipse-temurin:17
+    working_dir: /synthea
+    volumes:
+      - ./synthea-sample:/synthea # mount the folder containing synthea jar and scripts
+    environment:
+      - NUM_PATIENTS=${NUM_PATIENTS:-10}
+    command: ["sh", "-c", "java -jar /synthea/synthea-with-dependencies.jar --exporter.baseDirectory /synthea --exporter.fhir.bulk_data true --exporter.fhir.included_resources AllergyIntolerance,Condition,Device,DiagnosticReport,DocumentReference,Encounter,Immunization,Location,MedicationRequest,Observation,Organization,Patient,Practitioner,PractitionerRole,Procedure -cs 54321 -s 54321 -r 20230403 -e 20230403 -p ${NUM_PATIENTS} Kansas"]
+    restart: 'no'
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.runtime
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./synthea-sample:/synthea # app will read generated files from here
+    depends_on:
+      - db
+      - synthea
+    environment:
+      # allow setting NUM_PATIENTS so the app can reference the generated folder
+      - NUM_PATIENTS=${NUM_PATIENTS:-10}
+      # Spring datasource points to the internal docker network hostname 'db' on default 5432
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/proxyfhir
+      - SPRING_DATASOURCE_USERNAME=proxyfhir
+      - SPRING_DATASOURCE_PASSWORD=proxyfhir
+    command: ["sh", "-c", "java -jar /app/app.jar --synthea.files.dir=/synthea/${NUM_PATIENTS}-patients"]
+
+volumes:
+  db-data:
