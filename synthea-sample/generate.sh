@@ -3,7 +3,9 @@
 
 set -e
 
-NUM=$1
+# Accept the number of patients either as the first CLI arg or from the
+# NUM_PATIENTS environment variable. If neither is provided, fall back to 10.
+NUM="${1:-${NUM_PATIENTS:-580}}"
 if [ -z "$NUM" ]; then
   echo "You must provide a number of patients"
   exit 2

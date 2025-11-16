@@ -26,7 +26,8 @@ import java.util.stream.Collectors;
 @RequestMapping("/bulk")
 public class FhirExportController {
 
-    @Value("${synthea.files.dir:synthea-sample/10-patients}")
+    // Use a container-friendly default: the synthea sample folder is mounted at /synthea
+    @Value("${synthea.files.dir:/synthea/${NUM_PATIENTS:100}-patients}")
     private String filesDir;
 
     @GetMapping("/manifest")
@@ -109,4 +110,3 @@ public class FhirExportController {
                 .body(body);
     }
 }
-

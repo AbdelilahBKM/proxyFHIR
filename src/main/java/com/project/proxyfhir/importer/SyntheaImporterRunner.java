@@ -70,6 +70,18 @@ public class SyntheaImporterRunner implements CommandLineRunner {
             int imported = importNdjsonFile(f);
             totalImported += imported;
             log.info("Imported {} resources from {}", imported, f.getFileName());
+            // after successful import move the file into an imported/ subfolder so we don't re-import on restart
+            try {
+                Path importedDir = dir.resolve("imported");
+                if (!Files.exists(importedDir)) Files.createDirectory(importedDir);
+                Path target = importedDir.resolve(f.getFileName());
+                Files.move(f, target);
+                log.info("Moved imported file {} -> {}", f.getFileName(), target.toString());
+            } catch (IOException e) {
+                log.warn("Failed to move imported file {}: {}", f.getFileName(), e.getMessage());
+            }
+            // brief pause to yield CPU and reduce DB pressure between files
+            try { Thread.sleep(250); } catch (InterruptedException ignored) {}
         }
 
         log.info("Synthea importer: completed. Total resources imported: {}", totalImported);
@@ -79,7 +91,6 @@ public class SyntheaImporterRunner implements CommandLineRunner {
         int count = 0;
         List<FhirResource> batch = new ArrayList<>();
         final int BATCH_SIZE = 1000;
-
         try {
             String content = Files.readString(file, StandardCharsets.UTF_8);
             List<String> jsonObjects = splitJsonObjects(content);
@@ -114,6 +125,8 @@ public class SyntheaImporterRunner implements CommandLineRunner {
                     if (batch.size() >= BATCH_SIZE) {
                         repository.saveAll(batch);
                         batch.clear();
+                        // small pause to allow DB to catch up
+                        try { Thread.sleep(50); } catch (InterruptedException ignored) {}
                     }
                 } catch (IOException e) {
                     log.warn("Failed to parse JSON object in {}: {}", file.getFileName(), e.getMessage());

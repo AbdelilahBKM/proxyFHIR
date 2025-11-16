@@ -31,3 +31,7 @@ build/
 
 ### VS Code ###
 .vscode/
+
+synthea-sample/*-patients/
+synthea-sample/*.jar
+/target/

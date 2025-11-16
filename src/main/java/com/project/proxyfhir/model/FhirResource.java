@@ -1,6 +1,7 @@
 package com.project.proxyfhir.model;
 
 import com.fasterxml.jackson.annotation.JsonRawValue;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -27,7 +28,6 @@ public class FhirResource {
 
     @Lob
     @Column(name = "content", columnDefinition = "text")
-    @JsonRawValue
     private String content;
 
     @Column(name = "last_updated")
@@ -66,6 +66,7 @@ public class FhirResource {
         this.resourceId = resourceId;
     }
 
+    @JsonRawValue
     public String getContent() {
         return content;
     }
@@ -87,7 +88,7 @@ public class FhirResource {
         this.content = data;
     }
 
-    @JsonRawValue
+    @JsonIgnore
     public String getData() {
         return this.content;
     }
